@@ -23,10 +23,7 @@ body {
 	padding: 0;
 	line-height: 1.44em;
 	text-rendering: optimizeLegibility;
-}
-
-#app {
-	padding: 1em;
+	font-size: 1.5em;
 }
 
 #app button, #app input {
@@ -37,26 +34,34 @@ body {
 }
 #app input {
 	padding: 0px;
+	font-size: 1em;
+	margin: auto;
 }
 #app header {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	margin-bottom: 1em;
+	/*grid-template-columns: repeat(3, 1fr);*/
+	padding: 0.5em;
 }
 #app button {
 	border: 1px solid black;
 	background: orange;
 }
+#sky {
+	line-height: 0;
+}
 #sky svg {
-	background: #7dc5ea;
-	background-size: 100% 50%;
+	background: linear-gradient(to bottom, #7dc5ea 0,  #7dc5ea 50%, rgba(0,0,0,0.5) 50%, #000 100%);
 }
 #times ul {
 	list-style: none;
 	margin: 0;
 	padding: 0;
-	font-size: 2em;
 	line-height: 1.44em;
+}
+#times {
+	background: #000;
+	color: white;
+	padding: 1em;
 }
 #times ul > li {
 
