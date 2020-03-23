@@ -300,7 +300,7 @@ function Application(){
 
 		xy = getCoords(40,0);
 		this.paper.text(xy[0],xy[1],iso).attr({'fill':'black'});
-		this.paper.path([['M',getCoords(0,0)],['L',getCoords(1440,0)]]).attr({'stroke':'black','fill':'rgba(0,0,0,0.3)'});
+		this.paper.path([['M',getCoords(0,0)],['L',getCoords(1440,0)],['L',getCoords(1440,-90)],['L',getCoords(0,-90)],['Z',[]]]).attr({'stroke':'black','fill':'rgba(0,0,0,0.3)'});
 	
 		var oldpos;
 		for(var i = 0; i < 24*60; i++){
