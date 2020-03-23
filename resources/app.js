@@ -291,9 +291,10 @@ function Application(){
 		if(!this.paper) this.paper = new SVG('sky',wide,tall);
 
 		var objects = {
-			'sun':{'path':[],'colour':'orange','elevation':[],'types':[]},
-			'moon':{'path':[],'colour':'#999','elevation':[],'types':[]}
+			'sun':{'path':[],'colour':'orange','elevation':[]},
+			'moon':{'path':[],'colour':'#999','elevation':[]}
 		};
+		var list = [];
 
 		function getCoords(m,el){ return [m*wide/1440,tall/2 - el*tall/180]; }
 
@@ -310,7 +311,7 @@ function Application(){
 				objects[o].elevation.push([app.clock.toISOString(),pos[o].el]);
 				objects[o].path.push([(i==0 ? 'M':'L'),getCoords(i,pos[o].el)]);
 			}
-			if(i==0) objects.moon.types.push({'title':'Moon phase','value':pos.moon.phase.toFixed(2)+'%'});
+			if(i==0) list.push({'title':'Moon phase','value':pos.moon.phase.toFixed(2)+'%'});
 			oldpos = pos;
 		}
 
@@ -318,16 +319,20 @@ function Application(){
 
 		for(var o in objects){
 			for(var i = 1; i < objects[o].elevation.length; i++){
-				if(objects[o].elevation[i][1] >= 0-(sunsize/2) && objects[o].elevation[i-1][1] < 0-(sunsize/2)) objects[o].types.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'rise','value':objects[o].elevation[i][0].substr(11,5)});
-				if(objects[o].elevation[i][1] <= 0-(sunsize/2) && objects[o].elevation[i-1][1] > 0-(sunsize/2)) objects[o].types.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'set','value':objects[o].elevation[i][0].substr(11,5)});
+				if(objects[o].elevation[i][1] >= 0-(sunsize/2) && objects[o].elevation[i-1][1] < 0-(sunsize/2)) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'rise','value':objects[o].elevation[i][0].substr(11,5)});
+				if(objects[o].elevation[i][1] <= 0-(sunsize/2) && objects[o].elevation[i-1][1] > 0-(sunsize/2)) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'set','value':objects[o].elevation[i][0].substr(11,5)});
 			}
 			this.paper.path(objects[o].path).attr({'stroke':objects[o].colour,'stroke-width':2,'stroke-dasharray':'8 4','fill':'none'});
 		}
 		html = '';
-		for(var o in objects){
-			for(var i = 0; i < objects[o].types.length; i++){
-				html += '<li>'+objects[o].types[i].title+': '+objects[o].types[i].value+'</li>';
-			}
+		list.sort(function(a, b) {
+			if(a.value < b.value) return -1;
+			else return 1;
+		});
+
+
+		for(var i = 0; i < list.length; i++){
+			html += '<li>'+list[i].title+': '+list[i].value+'</li>';
 		}
 
 		if(html) S('#times').html('<ul>'+html+'</ul>');
