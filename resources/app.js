@@ -332,7 +332,12 @@ function Application(){
 
 
 		for(var i = 0; i < list.length; i++){
-			html += '<li>'+list[i].title+': '+list[i].value+'</li>';
+			a = list[i].value.match(/[0-9]{2}\:[0-9]{2}/);
+			if(a){
+				html += '<li>'+list[i].value+' '+list[i].title+'</li>';
+			}else{
+				//html += '<li>'+list[i].value+' '+list[i].title+'</li>';
+			}
 		}
 
 		if(html) S('#times').html('<ul>'+html+'</ul>');
