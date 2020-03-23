@@ -222,10 +222,34 @@ function Application(){
 		}
 	};
 
+
+	/* Add events */
 	var dateControl = document.querySelector('input[type="date"]');
 	S(dateControl).on('change',{me:this},function(e){
 		e.data.me.setDate(e.currentTarget.value);
 	});
+	// Add keypress
+	S(document).on('keyup',{'me':this},function(e){
+		var d;
+		if(e.originalEvent.keyCode==37){
+			d = new Date(dateControl.value);
+			d.setHours(12);
+			d.setDate(d.getDate() - 1);
+			e.data.me.setDate(d.toISOString().substr(0,10));
+		}else if(e.originalEvent.keyCode==39){
+			d = new Date(dateControl.value);
+			d.setHours(12);
+			d.setDate(d.getDate() + 1);
+			e.data.me.setDate(d.toISOString().substr(0,10));
+		}
+	});
+	this.resize = function(){
+		this.setDate();
+		return this;
+	}
+	var _obj = this;
+	window.onresize = function(event){ _obj.resize(); };
+
 
 	this.setDate = function(t){
 
@@ -243,18 +267,28 @@ function Application(){
 
 		dateControl.value = iso.substr(0,10);
 		this.setClock(new Date(iso));
-		console.log(this.clock,iso);
 
 		clock = new Date(this.clock);
+		// Set to midnight (today)
 		clock.setHours(0);
 		clock.setMinutes(0);
 		clock.setSeconds(0);
+		clock.setMilliseconds(0);
+
 
 		var tall = 300;
-		var wide = 1080;
+		var wide = 0;
 
-		if(this.paper) this.paper.clear();
-		else this.paper = new SVG('sky',wide,tall);
+		// Reset size of svg
+		if(this.paper){
+			this.paper.clear();
+			wide = S('#sky')[0].offsetWidth;
+			this.paper.paper.attr('width',wide).attr('viewBox','0 0 '+wide+' '+tall);
+		}else{
+			wide = S('#sky')[0].offsetWidth;
+		}
+
+		if(!this.paper) this.paper = new SVG('sky',wide,tall);
 
 		var objects = {
 			'sun':{'path':[],'colour':'orange','elevation':[],'types':[]},
@@ -266,8 +300,6 @@ function Application(){
 		xy = getCoords(40,0);
 		this.paper.text(xy[0],xy[1],iso).attr({'fill':'black'});
 		this.paper.path([['M',getCoords(0,0)],['L',getCoords(1440,0)]]).attr({'stroke':'black','fill':'rgba(0,0,0,0.3)'});
-
-
 	
 		var oldpos;
 		for(var i = 0; i < 24*60; i++){
@@ -294,7 +326,6 @@ function Application(){
 		html = '';
 		for(var o in objects){
 			for(var i = 0; i < objects[o].types.length; i++){
-		console.log(objects[o].types[i]);
 				html += '<li>'+objects[o].types[i].title+': '+objects[o].types[i].value+'</li>';
 			}
 		}
