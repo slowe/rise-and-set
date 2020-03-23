@@ -3,6 +3,7 @@ var app;
 function Application(){
 
 	this.objects = {};
+	this.settings = {'astronomical':false,'nautical':false};
 
 	// Constants
 	var d2r = Math.PI/180;
@@ -276,14 +277,14 @@ function Application(){
 		clock.setMilliseconds(0);
 
 
-		var tall = 300;
+		var tall = 250;
 		var wide = 0;
 
 		if(!this.paper) this.paper = new SVG('sky',wide,tall);
 
 		// Reset size of svg
 		this.paper.clear();
-		wide = S('#sky')[0].offsetWidth;
+		wide = Math.floor(S('#sky')[0].offsetWidth);
 		this.paper.paper.attr('width',wide).attr('viewBox','0 0 '+wide+' '+tall);
 
 		var objects = {
@@ -295,7 +296,7 @@ function Application(){
 		function getCoords(m,el){ return [m*wide/1440,tall/2 - el*tall/180]; }
 
 		xy = getCoords(40,0);
-		this.paper.text(xy[0],xy[1],iso).attr({'fill':'black'});
+		//this.paper.text(xy[0],xy[1],iso).attr({'fill':'black'});
 		this.paper.path([['M',getCoords(0,0)],['L',getCoords(1440,0)]]).attr({'stroke':'black','fill':'rgba(0,0,0,0.3)'});	// ,['L',getCoords(1440,-90)],['L',getCoords(0,-90)],['Z',[]]
 	
 		var oldpos;
@@ -307,7 +308,7 @@ function Application(){
 				objects[o].elevation.push([app.clock.toISOString(),pos[o].el]);
 				objects[o].path.push([(i==0 ? 'M':'L'),getCoords(i,pos[o].el)]);
 			}
-			if(i==0) list.push({'title':'Moon phase','value':pos.moon.phase.toFixed(2)+'%'});
+			if(i==0) list.push({'title':'Moon phase','value':pos.moon.phase.toFixed(2)+'%','colour':objects.moon.colour});
 			oldpos = pos;
 		}
 
@@ -315,14 +316,22 @@ function Application(){
 
 		for(var o in objects){
 			for(var i = 1; i < objects[o].elevation.length; i++){
-				if(objects[o].elevation[i][1] >= 0-(sunsize/2) && objects[o].elevation[i-1][1] < 0-(sunsize/2)) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'rise','value':objects[o].elevation[i][0].substr(11,5)});
-				if(objects[o].elevation[i][1] <= 0-(sunsize/2) && objects[o].elevation[i-1][1] > 0-(sunsize/2)) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'set','value':objects[o].elevation[i][0].substr(11,5)});
+				if(objects[o].elevation[i][1] >= 0-(sunsize/2) && objects[o].elevation[i-1][1] < 0-(sunsize/2)) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'rise','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
+				if(objects[o].elevation[i][1] <= 0-(sunsize/2) && objects[o].elevation[i-1][1] > 0-(sunsize/2)) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'set','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
 				if(o == "sun"){
-					if(objects[o].elevation[i][1] >= -6-(sunsize/2) && objects[o].elevation[i-1][1] < -6-(sunsize/2)) list.push({'title':'First light','value':objects[o].elevation[i][0].substr(11,5)});
-					if(objects[o].elevation[i][1] <= -6-(sunsize/2) && objects[o].elevation[i-1][1] > -6-(sunsize/2)) list.push({'title':'Last light','value':objects[o].elevation[i][0].substr(11,5)});
+					if(objects[o].elevation[i][1] >= -6-(sunsize/2) && objects[o].elevation[i-1][1] < -6-(sunsize/2)) list.push({'title':'First light','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
+					if(objects[o].elevation[i][1] <= -6-(sunsize/2) && objects[o].elevation[i-1][1] > -6-(sunsize/2)) list.push({'title':'Last light','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
+					if(this.settings.nautical){
+						if(objects[o].elevation[i][1] >= -12-(sunsize/2) && objects[o].elevation[i-1][1] < -12-(sunsize/2)) list.push({'title':'Nautical dawn','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
+						if(objects[o].elevation[i][1] <= -12-(sunsize/2) && objects[o].elevation[i-1][1] > -12-(sunsize/2)) list.push({'title':'Nautical dusk','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
+					}
+					if(this.settings.astronomical){
+						if(objects[o].elevation[i][1] >= -18-(sunsize/2) && objects[o].elevation[i-1][1] < -18-(sunsize/2)) list.push({'title':'Astronomical dawn','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
+						if(objects[o].elevation[i][1] <= -18-(sunsize/2) && objects[o].elevation[i-1][1] > -18-(sunsize/2)) list.push({'title':'Astronomical dusk','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
+					}
 				}
 			}
-			this.paper.path(objects[o].path).attr({'stroke':objects[o].colour,'stroke-width':2,'stroke-dasharray':'8 4','fill':'none'});
+			this.paper.path(objects[o].path).attr({'stroke':objects[o].colour,'stroke-width':2,'stroke-dasharray':'10 2','fill':'none'});
 		}
 		html = '';
 		list.sort(function(a, b) {
@@ -334,7 +343,7 @@ function Application(){
 		for(var i = 0; i < list.length; i++){
 			a = list[i].value.match(/[0-9]{2}\:[0-9]{2}/);
 			if(a){
-				html += '<li>'+list[i].value+' '+list[i].title+'</li>';
+				html += '<li style="color:'+list[i].colour+'">'+list[i].value+' '+list[i].title+'</li>';
 			}else{
 				//html += '<li>'+list[i].value+' '+list[i].title+'</li>';
 			}
