@@ -256,7 +256,10 @@ function Application(){
 		if(this.paper) this.paper.clear();
 		else this.paper = new SVG('sky',wide,tall);
 
-		var objects = {'sun':{'path':[],'colour':'orange'},'moon':{'path':[],'colour':'#999'}};
+		var objects = {
+			'sun':{'path':[],'colour':'orange','elevation':[],'types':[]},
+			'moon':{'path':[],'colour':'#999','elevation':[],'types':[]}
+		};
 
 		function getCoords(m,el){ return [m*wide/1440,tall/2 - el*tall/180]; }
 
@@ -264,25 +267,43 @@ function Application(){
 		this.paper.text(xy[0],xy[1],iso).attr({'fill':'black'});
 		this.paper.path([['M',getCoords(0,0)],['L',getCoords(1440,0)]]).attr({'stroke':'black','fill':'rgba(0,0,0,0.3)'});
 
+
+	
+		var oldpos;
 		for(var i = 0; i < 24*60; i++){
 			clock.setMinutes(clock.getMinutes()+1);
 			app.setClock(clock);
 			pos = app.getPositions(objects);
-
 			for(var o in objects){
+				objects[o].elevation.push([app.clock.toISOString(),pos[o].el]);
 				objects[o].path.push([(i==0 ? 'M':'L'),getCoords(i,pos[o].el)]);
+			}
+			if(i==0) objects.moon.types.push({'title':'Moon phase','value':pos.moon.phase.toFixed(2)+'%'});
+			oldpos = pos;
+		}
+
+		sunsize = 0.5;
+
+		for(var o in objects){
+			for(var i = 1; i < objects[o].elevation.length; i++){
+				if(objects[o].elevation[i][1] >= 0-(sunsize/2) && objects[o].elevation[i-1][1] < 0-(sunsize/2)) objects[o].types.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'rise','value':objects[o].elevation[i][0].substr(11,5)});
+				if(objects[o].elevation[i][1] <= 0-(sunsize/2) && objects[o].elevation[i-1][1] > 0-(sunsize/2)) objects[o].types.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'set','value':objects[o].elevation[i][0].substr(11,5)});
+			}
+			this.paper.path(objects[o].path).attr({'stroke':objects[o].colour,'stroke-width':2,'stroke-dasharray':'8 4','fill':'none'});
+		}
+		html = '';
+		for(var o in objects){
+			for(var i = 0; i < objects[o].types.length; i++){
+		console.log(objects[o].types[i]);
+				html += '<li>'+objects[o].types[i].title+': '+objects[o].types[i].value+'</li>';
 			}
 		}
 
-		for(var o in objects){
-			this.paper.path(objects[o].path).attr({'stroke':objects[o].colour,'stroke-width':2,'stroke-dasharray':'8 4','fill':'none'});
-		}
-
-		console.log(objects)
+		if(html) S('#times').html('<ul>'+html+'</ul>');
 		this.paper.draw();
 		S('#sky svg').css({'overflow':'unset'});
 		
-		console.log('hello', (new Date() - now)+' ms');
+		console.log('Run time: '+(new Date() - now)+' ms');
 
 		return;
 	}
@@ -296,7 +317,7 @@ S(document).ready(function(){
 	
 
 	app = new Application({});
-	app.setGeo(53.5,-1.5);
+	app.setGeo(53.95931,-1.53505);
 	
 	app.setDate();
 
