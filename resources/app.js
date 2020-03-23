@@ -277,7 +277,7 @@ function Application(){
 		clock.setMilliseconds(0);
 
 
-		var tall = 250;
+		var tall = 240;
 		var wide = 0;
 
 		if(!this.paper) this.paper = new SVG('sky',wide,tall);
