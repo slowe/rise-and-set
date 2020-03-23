@@ -244,7 +244,7 @@ function Application(){
 		}
 	});
 	this.resize = function(){
-		this.setDate();
+		this.setDate(dateControl.value);
 		return this;
 	}
 	var _obj = this;
