@@ -321,6 +321,10 @@ function Application(){
 			for(var i = 1; i < objects[o].elevation.length; i++){
 				if(objects[o].elevation[i][1] >= 0-(sunsize/2) && objects[o].elevation[i-1][1] < 0-(sunsize/2)) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'rise','value':objects[o].elevation[i][0].substr(11,5)});
 				if(objects[o].elevation[i][1] <= 0-(sunsize/2) && objects[o].elevation[i-1][1] > 0-(sunsize/2)) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'set','value':objects[o].elevation[i][0].substr(11,5)});
+				if(o == "sun"){
+					if(objects[o].elevation[i][1] >= -6-(sunsize/2) && objects[o].elevation[i-1][1] < -6-(sunsize/2)) list.push({'title':'First light','value':objects[o].elevation[i][0].substr(11,5)});
+					if(objects[o].elevation[i][1] <= -6-(sunsize/2) && objects[o].elevation[i-1][1] > -6-(sunsize/2)) list.push({'title':'Last light','value':objects[o].elevation[i][0].substr(11,5)});
+				}
 			}
 			this.paper.path(objects[o].path).attr({'stroke':objects[o].colour,'stroke-width':2,'stroke-dasharray':'8 4','fill':'none'});
 		}
