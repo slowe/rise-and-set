@@ -145,3 +145,13 @@ body {
 	top: 0.125em;
 	margin-right: 0.25em;
 }
+
+@media only screen and (max-width: 1080px) {
+	.wide { display: none; }
+	#app label, #times { padding-left: 0.5em; }
+	#app label { display: none; }
+	#app header { grid-template-columns: 1fr 3em; }
+	#app input { margin-left: 0.5em; }
+	#date, #app input[type="date"] { margin-left: 0.5em; margin-top: 0.5em; }
+	
+}
