@@ -476,6 +476,9 @@ function Application(){
 			return r;
 		}
 	});
+	S('#typeahead').on('focus',function(e){
+		e.currentTarget.value = "";
+	});
 	
 	S('form').on('submit',function(e){
 		e.preventDefault();
