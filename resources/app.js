@@ -626,7 +626,7 @@ S(document).ready(function(){
 	
 
 	app = new Application({});
-	//app.setGeo(53.9929,-1.5457,"Europe/London","Harrogate, UK");
-	app.setGeo(-33.85702,151.21462,"Australia/Sydney","Sydney, Australia");
+	app.setGeo(53.9929,-1.5457,"Europe/London","Harrogate, UK");
+	//app.setGeo(-33.85702,151.21462,"Australia/Sydney","Sydney, Australia");
 
 });
