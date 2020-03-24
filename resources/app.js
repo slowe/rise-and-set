@@ -19,6 +19,7 @@ function Application(){
 		this.latitude = {'deg':lat,'rad':lat*d2r};
 		this.longitude = {'deg':lon,'rad':lon*d2r};
 		this.setClock(this.clock);
+		this.setDate();
 		return this;
 	}
 
@@ -251,6 +252,26 @@ function Application(){
 	var _obj = this;
 	window.onresize = function(event){ _obj.resize(); };
 
+	if("geolocation" in navigator){
+
+		S('#btn-location').on('click',{me:this},function(e){
+			e.preventDefault();
+			e.data.me.centred = false;
+			var geo_options = {
+				enableHighAccuracy: true, 
+				maximumAge        : 60000,
+				timeout           : 27000
+			};
+			function geo_error(){
+				_obj.log.error("Sorry, no position available.");
+			}
+			// Get the user location
+			e.data.me.watchID = navigator.geolocation.getCurrentPosition(function(position) {
+				_obj.setGeo(position.coords.latitude,position.coords.longitude);
+				S('#btn-location').html('Location: '+position.coords.latitude.toFixed(1)+','+position.coords.longitude.toFixed(1));
+			},geo_error,geo_options);
+		});
+	}
 
 	this.setDate = function(t){
 
@@ -260,7 +281,7 @@ function Application(){
 			console.error('No date control defined');
 			return this;
 		}
-
+		if(!t && dateControl) t = dateControl.value;
 		now = new Date();
 		if(!t) t = now;
 		if(typeof t==="string") t = new Date(t);
@@ -366,8 +387,6 @@ S(document).ready(function(){
 	
 
 	app = new Application({});
-	app.setGeo(53.95931,-1.53505);
-	
-	app.setDate();
+	app.setGeo(53.9929,-1.5457);
 
 });
