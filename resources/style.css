@@ -56,33 +56,65 @@ body {
 	transform: translate3d(-50%,-50%,0);
 	position: absolute;
 }
-#app button, #app input {
+#app a.button, #app input, #app label {
 	line-height: 2em;
 	font-size: inherit;
 	box-sizing: border-box;
 }
+#app label { padding: 0 0.5em 0 1em; }
 #app input {
 	padding: 0px;
 	margin: auto;
+	width: 100%;
+	border: 0px;
+	font-size: 1em;
+	font-family: inherit;
 }
 #app header {
 	background: white;
+	color: black;
 	display: grid;
-	grid-template-columns: repeat(1, 1fr);
+	grid-template-columns: auto 1fr 3em;
 }
-#app button {
+#app a.button {
 	border: 0px;
+	background: #666;
+	color: white;
+	cursor: pointer;
+	display: inline-block;
+	text-align: center;
+}
+#app a.button.active {
 	background: #eebd14;
+	color: black;
+}
+#app header { position: relative; }
+#app header .typeahead-results {
+	position: absolute;
+	z-index: 1000;
+	background: white;
+	width: 100%;
+	box-shadow: 0px 4px 4px rgba(0,0,0,0.15);
+}
+#app header .typeahead-results > ol > li {
+	padding: 0.25em 0.5em;
+}
+#app header .typeahead-results > ol > li a {
+	text-decoration: none;
+	color: inherit;
+}
+#app header .typeahead-results > ol > li.selected {
+	background: #dfdfdf;
 }
 #day {
 	background: #000;
 	position: relative;
 }
-#date {
+#date, #app input[type=date] {
+	width: auto;
+	margin: 1em;
 	position: absolute;
 	z-index: 1;
-	top: 0.5em;
-	left: 1em;
 	background: transparent; 
 	border: 0px;
 	font-family: inherit;
@@ -91,12 +123,13 @@ body {
 	line-height: 0;
 }
 #sky svg {
-	background: linear-gradient(to bottom, #169bd5 0, #fFF 50%, #666 50%, #000 80%);
+	background: linear-gradient(to bottom, #00BFFF 0, #E0FFFF 50%, #666 50%, #000 80%);
 }
 #times ul {
 	list-style: none;
 	margin: 0;
 	padding: 0;
+	font-size: 1.4em;
 	line-height: 1.44em;
 }
 #times {

@@ -7,6 +7,8 @@
 	<link rel="StyleSheet" href="resources/style.css" type="text/css" />
 	<script type="text/javascript" src="resources/stuquery.min.js"></script>
 	<script type="text/javascript" src="resources/stuquery.svg.js"></script>
+	<script type="text/javascript" src="resources/typeahead.min.js"></script>
+	<script type="text/javascript" src="resources/luxon.min.js"></script>
 	<script type="text/javascript" src="resources/app.js"></script>
 </head>
 <body>
@@ -33,8 +35,6 @@
 						<circle cx="0" cy="0" r="16"></circle>
 					</g>
 				</svg>
-
-			
 				<br />Loading...
 			</div>
 		</div>
@@ -42,9 +42,16 @@
 
 	<div id="app">
 
-		<header>
-			<!--<button id="btn-object">Sol</button>--><button id="btn-location">Location: Harrogate, UK</button>
-		</header>
+		<form>
+			<header>
+				<!--<button id="btn-object">Sol</button>-->
+				<label for="typeahead">Location:</label>
+				<div>
+					<input type="text" id="typeahead" value="" placeholder="e.g. Harrogate, UK">
+				</div>
+				<a class="button" id="btn-location">Geo</a>
+			</header>
+		</form>
 		
 		<div id="day">
 			<input type="date" id="date" />
