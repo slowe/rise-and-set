@@ -330,7 +330,7 @@ function Application(){
 				objects[o].elevation.push([app.clock.toISOString(),pos[o].el]);
 				objects[o].path.push([(i==0 ? 'M':'L'),getCoords(i,pos[o].el)]);
 			}
-			if(i==0) list.push({'title':'Moon phase','value':pos.moon.phase.toFixed(2)+'%','colour':objects.moon.colour});
+			if(i==0) list.push({'title':'Moon phase','value':pos.moon.phase.toFixed(2)+'%','colour':objects.moon.colour,'type':o});
 			oldpos = pos;
 		}
 
@@ -338,14 +338,14 @@ function Application(){
 
 		for(var o in objects){
 			for(var i = 1; i < objects[o].elevation.length; i++){
-				if(objects[o].elevation[i][1] >= 0-(sunsize/2) && objects[o].elevation[i-1][1] < 0-(sunsize/2)) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'rise','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
-				if(objects[o].elevation[i][1] <= 0-(sunsize/2) && objects[o].elevation[i-1][1] > 0-(sunsize/2)) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'set','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
+				if(objects[o].elevation[i][1] >= 0-(sunsize/2) && objects[o].elevation[i-1][1] < 0-(sunsize/2)) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'rise','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour,'type':o});
+				if(objects[o].elevation[i][1] <= 0-(sunsize/2) && objects[o].elevation[i-1][1] > 0-(sunsize/2)) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'set','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour,'type':o});
 				if(o == "sun"){
-					if(objects[o].elevation[i][1] >= -6-(sunsize/2) && objects[o].elevation[i-1][1] < -6-(sunsize/2)) list.push({'title':'First light','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
-					if(objects[o].elevation[i][1] <= -6-(sunsize/2) && objects[o].elevation[i-1][1] > -6-(sunsize/2)) list.push({'title':'Last light','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
+					if(objects[o].elevation[i][1] >= -6-(sunsize/2) && objects[o].elevation[i-1][1] < -6-(sunsize/2)) list.push({'title':'First light','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour,'type':o});
+					if(objects[o].elevation[i][1] <= -6-(sunsize/2) && objects[o].elevation[i-1][1] > -6-(sunsize/2)) list.push({'title':'Last light','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour,'type':o});
 					if(this.settings.nautical){
-						if(objects[o].elevation[i][1] >= -12-(sunsize/2) && objects[o].elevation[i-1][1] < -12-(sunsize/2)) list.push({'title':'Nautical dawn','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
-						if(objects[o].elevation[i][1] <= -12-(sunsize/2) && objects[o].elevation[i-1][1] > -12-(sunsize/2)) list.push({'title':'Nautical dusk','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
+						if(objects[o].elevation[i][1] >= -12-(sunsize/2) && objects[o].elevation[i-1][1] < -12-(sunsize/2)) list.push({'title':'Nautical dawn','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour,'type':o});
+						if(objects[o].elevation[i][1] <= -12-(sunsize/2) && objects[o].elevation[i-1][1] > -12-(sunsize/2)) list.push({'title':'Nautical dusk','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour,'type':o});
 					}
 					if(this.settings.astronomical){
 						if(objects[o].elevation[i][1] >= -18-(sunsize/2) && objects[o].elevation[i-1][1] < -18-(sunsize/2)) list.push({'title':'Astronomical dawn','value':objects[o].elevation[i][0].substr(11,5),'colour':objects[o].colour});
@@ -365,7 +365,8 @@ function Application(){
 		for(var i = 0; i < list.length; i++){
 			a = list[i].value.match(/[0-9]{2}\:[0-9]{2}/);
 			if(a){
-				html += '<li style="color:'+list[i].colour+'">'+list[i].value+' '+list[i].title+'</li>';
+				ico = '<img src="resources/'+list[i].type+'.svg" />';
+				html += '<li style="color:'+list[i].colour+'">'+list[i].value+' '+ico+''+list[i].title+'</li>';
 			}else{
 				//html += '<li>'+list[i].value+' '+list[i].title+'</li>';
 			}

@@ -105,5 +105,11 @@ body {
 	margin-top: -2.5em;
 }
 #times ul > li {
-
+	line-height: 1.5em;
+}
+#times ul > li img {
+	height: 1em;
+	position: relative;
+	top: 0.125em;
+	margin-right: 0.25em;
 }
