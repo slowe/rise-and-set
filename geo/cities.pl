@@ -29,6 +29,7 @@ for($i = 0 ; $i < $n; $i++){
 #	print $result[$i]->{'name'}." - ".$result[$i]->{'population'}."\n";
 #}
 
+@results;
 
 for($i = 0; $i < @result; $i++){
 	
@@ -60,18 +61,20 @@ for($i = 0; $i < @result; $i++){
 		$n = @{$results{$fl}};
 		if(!$n){ $n = 0 };
 		
-		if($name =~ /Mumbai/){
-			#print "Mumbai = $fl-$n\n";
+		if($result[$i]->{'timezone'}){
+			$db{$fl."-".$n} = "$lat\t$lon\t$result[$i]->{'timezone'}";
+			push(@{$results{$fl}},$line);
 		}
-		$db{$fl."-".$n} = "$lat\t$lon\t$result[$i]->{'timezone'}";
-		push(@{$results{$fl}},$line);
 	}
 }
 
 %cities;
 $binning = 100;
 
-foreach $l (keys(%results)){
+%files;
+
+foreach $l (sort(keys(%results))){
+print $l."\n";
 	$n = @{$results{$l}};
 	open(FILE,">","ranked-$l.tsv");
 	for($i = 0; $i < $n; $i++){
@@ -81,29 +84,42 @@ foreach $l (keys(%results)){
 		$id = $1;
 		$j = int($i/$binning);
 		$file = "cities/$l-$j.tsv";
+if($l eq "h"){
+	print "$i - $out ($file)\n";
+}
+		if(!$files{$file}){ $files{$file} = (); }
+
 		if($i == $j){
 			# Remove the file
 			if($file && -e $file){
-				`rm $file`;
+				`rm "$file"`;
 			}
-		}
-		if($out =~ /Mumbai/){
-			#print "$l-$i\n";
 		}
 		#push(@{$cities{$l}},$i."\t".$db{$l."-".$i});
 #		open(CITY,">","cities/".$l."-".$i.".tsv");
 #		print CITY "".$db{$l."-".$i}."\n";
 #		close(CITY);
 		#push(@{$cities{$l}},$i."\t".$db{$l."-".$i});
-		open(CITY,">>",$file);
-		print CITY "$i\t".$db{$l."-".$i}."\n";
-		close(CITY);
+#if($l eq "h"){
+		push(@{$files{$file}},"$i\t".$db{$l."-".$i});
+#}
+#		open(CITY,">>",$file);
+#		print CITY "$i\t".$db{$l."-".$i}."\n";
+#		close(CITY);
 		print FILE "$out";
 	}
 	close(FILE);
 }
 
-
+foreach $file (keys(%files)){
+	$n = @{$files{$file}};
+	open(CITY,">",$file);
+	for($i = 0; $i < $n ; $i++){
+		print CITY $files{$file}[$i]."\n";
+	}
+	close(CITY);
+#	print "$file - $n\n";
+}
 
 sub orderit {
 	my @in = @_;
