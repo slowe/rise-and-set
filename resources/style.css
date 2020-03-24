@@ -27,6 +27,35 @@ body {
 	overflow-y: scroll;
 }
 
+#splash { text-align: center; background-color: black; }
+.modal {
+	position: absolute;
+	width: 100%;
+	min-height: 100%;
+	z-index: 10000;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	color: #eebd14;
+}
+.modal > div {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	margin: 2em;
+}
+.modal .centre-block {
+	width: 500px;
+	max-width: 100%;
+	margin: auto;
+	left: 50%;
+	top: 50%;
+	transform: translate3d(-50%,-50%,0);
+	position: absolute;
+}
 #app button, #app input {
 	line-height: 2em;
 	font-size: inherit;
@@ -43,7 +72,7 @@ body {
 }
 #app button {
 	border: 0px;
-	background: orange;
+	background: #eebd14;
 }
 #day {
 	background: #000;

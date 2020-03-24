@@ -272,6 +272,7 @@ function Application(){
 			},geo_error,geo_options);
 		});
 	}
+	S('#splash').css({'display':'none'});
 
 	this.setDate = function(t){
 
@@ -309,7 +310,7 @@ function Application(){
 		this.paper.paper.attr('width',wide).attr('viewBox','0 0 '+wide+' '+tall);
 
 		var objects = {
-			'sun':{'path':[],'colour':'orange','elevation':[]},
+			'sun':{'path':[],'colour':'#eebd14','elevation':[]},
 			'moon':{'path':[],'colour':'#999','elevation':[]}
 		};
 		var list = [];
