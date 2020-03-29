@@ -13,8 +13,7 @@ function Application(){
 
 	// The Julian Date of the Unix Time epoch is 2440587.5
 	function getJD(clock){
-		if(!clock) clock = new Date();
-		return (clock.getTime()/86400000.0) + 2440587.5;
+		return (clock.toMillis()/86400000.0) + 2440587.5;
 	};
 
 	this.setGeo = function(lat,lon,tz,name){
@@ -22,7 +21,6 @@ function Application(){
 		this.longitude = {'deg':lon,'rad':lon*d2r};
 		this.tz = (tz||undefined);
 		if(name) S('#typeahead')[0].value = name;
-		this.setClock(this.clock);
 		this.setDate();
 		return this;
 	}
@@ -35,7 +33,7 @@ function Application(){
 				this.objects[obj] = sunPosition(this.times.JD);
 			}else if(obj=="moon"){
 				this.objects[obj] = moonPosition(this.times.JD,this.objects.sun);
-				this.objects[obj].phase = moonPhase(this.times.JD);
+				//this.objects[obj].phase = moonPhase(this.times.JD);
 			}
 			
 			c = this.ecliptic2azel(this.objects[obj].lon*d2r,this.objects[obj].lat*d2r,this.times.LST);
@@ -47,21 +45,18 @@ function Application(){
 
 	// Find the Julian Date, Local Sidereal Time and Greenwich Sidereal Time
 	this.setClock = function(clock){
-		if(!clock){
-			this.clock = new Date();
-			clock = this.clock;
-		}
 		this.clock = clock;
 		lon = (this.longitude.deg||0);
 
 		var JD,JD0,S,T,T0,UT,A,GST,d,LST;
-		JD = getJD(clock);
+		JD = getJD(this.clock);
+		UTC = this.clock.toUTC();
 		JD0 = Math.floor(JD-0.5)+0.5;
 		S = JD0-2451545.0;
 		T = S/36525.0;
 		T0 = (6.697374558 + (2400.051336*T) + (0.000025862*T*T))%24;
 		if(T0 < 0) T0 += 24;
-		UT = (((clock.getUTCMilliseconds()/1000 + clock.getUTCSeconds())/60) + clock.getUTCMinutes())/60 + clock.getUTCHours();
+		UT = (((UTC.millisecond/1000 + UTC.second)/60) + UTC.minute)/60 + UTC.hour;
 		A = UT*1.002737909;
 		T0 += A;
 		GST = T0%24;
@@ -306,16 +301,13 @@ function Application(){
 		// Set the dateControl
 		dateControl.value = iso.substr(0,10);
 
-		// Set the clock parameters (re-calculates astronomical values)
-		this.setClock(new Date(iso));
-
 		// We've set the clock in the locale timezone but we want to calculate a day in the destination timezone
 		var dt = luxon.DateTime.fromISO(iso+'T00:00Z');
 		if(this.tz) dt = dt.setZone(this.tz);
 		// Set clock to start of the day in the appropriate timezone
 		clock = dt.startOf('day');
 		
-
+//console.log(dt,clock,this.tz)
 		var tall = 240;
 		var wide = 0;
 
@@ -335,57 +327,63 @@ function Application(){
 		function getCoords(m,el){ return [m*wide/1440,tall/2 - el*tall/180]; }
 
 		xy = getCoords(40,0);
-		//this.paper.text(xy[0],xy[1],iso).attr({'fill':'black'});
 		this.paper.path([['M',getCoords(0,0)],['L',getCoords(1440,0)]]).attr({'stroke':'black','fill':'rgba(0,0,0,0.3)'});	// ,['L',getCoords(1440,-90)],['L',getCoords(0,-90)],['Z',[]]
 	
 		var oldpos;
 		for(var i = 0; i < 24*60; i++){
 			clock = clock.plus({minutes: 1});
-			app.setClock(new Date(clock.valueOf()));
+			// Set the clock parameters (re-calculates astronomical values)
+			app.setClock(clock);
 			pos = app.getPositions(objects);
 			for(var o in objects){
-				objects[o].elevation.push({'user':app.clock,'local':clock.toISO(),'el':pos[o].el});
+				objects[o].elevation.push({'time':clock,'el':pos[o].el});
 				objects[o].path.push([(i==0 ? 'M':'L'),getCoords(i,pos[o].el)]);
 			}
-			if(i==0) list.push({'title':'Moon phase','value':pos.moon.phase.toFixed(2)+'%','colour':objects.moon.colour,'type':o});
 			oldpos = pos;
 		}
 
 		sunsize = 0.5;
+		sunrad = sunsize/2;
 
 		for(var o in objects){
+			prevel = objects[o].elevation[0].el;
+			objects[o].list = [];
 			for(var i = 1; i < objects[o].elevation.length; i++){
-				if(objects[o].elevation[i].el >= 0-(sunsize/2) && objects[o].elevation[i-1].el < 0-(sunsize/2)) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'rise','values':objects[o].elevation[i],'colour':objects[o].colour,'type':o});
-				if(objects[o].elevation[i].el <= 0-(sunsize/2) && objects[o].elevation[i-1].el > 0-(sunsize/2)) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'set','values':objects[o].elevation[i],'colour':objects[o].colour,'type':o});
+				ob = objects[o].elevation[i];
+				el = ob.el;
+				if(el >= 0-sunrad && prevel < 0-sunrad) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'rise','values':ob,'colour':objects[o].colour,'type':o});
+				if(el <= 0-sunrad && prevel > 0-sunrad) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'set','values':ob,'colour':objects[o].colour,'type':o});
 				if(o == "sun"){
-					if(objects[o].elevation[i].el >= -6-(sunsize/2) && objects[o].elevation[i-1].el < -6-(sunsize/2)) list.push({'title':'First light','values':objects[o].elevation[i],'colour':objects[o].colour,'type':o});
-					if(objects[o].elevation[i].el <= -6-(sunsize/2) && objects[o].elevation[i-1].el > -6-(sunsize/2)) list.push({'title':'Last light','values':objects[o].elevation[i],'colour':objects[o].colour,'type':o});
+					if(el >= -6-sunrad && prevel < -6-sunrad) list.push({'title':'First light','values':ob,'colour':objects[o].colour,'type':o});
+					if(el <= -6-sunrad && prevel > -6-sunrad) list.push({'title':'Last light','values':ob,'colour':objects[o].colour,'type':o});
 					if(this.settings.nautical){
-						if(objects[o].elevation[i].el >= -12-(sunsize/2) && objects[o].elevation[i-1].el < -12-(sunsize/2)) list.push({'title':'Nautical dawn','values':objects[o].elevation[i],'colour':objects[o].colour,'type':o});
-						if(objects[o].elevation[i].el <= -12-(sunsize/2) && objects[o].elevation[i-1].el > -12-(sunsize/2)) list.push({'title':'Nautical dusk','values':objects[o].elevation[i],'colour':objects[o].colour,'type':o});
+						if(el >= -12-sunrad && prevel < -12-sunrad) list.push({'title':'Nautical dawn','values':ob,'colour':objects[o].colour,'type':o});
+						if(el <= -12-sunrad && prevel > -12-sunrad) list.push({'title':'Nautical dusk','values':ob,'colour':objects[o].colour,'type':o});
 					}
 					if(this.settings.astronomical){
-						if(objects[o].elevation[i].el >= -18-(sunsize/2) && objects[o].elevation[i-1].el < -18-(sunsize/2)) list.push({'title':'Astronomical dawn','values':objects[o].elevation[i],'colour':objects[o].colour});
-						if(objects[o].elevation[i].el <= -18-(sunsize/2) && objects[o].elevation[i-1].el > -18-(sunsize/2)) list.push({'title':'Astronomical dusk','values':objects[o].elevation[i],'colour':objects[o].colour});
+						if(el >= -18-sunrad && prevel < -18-sunrad) list.push({'title':'Astronomical dawn','values':ob,'colour':objects[o].colour});
+						if(el <= -18-sunrad && prevel > -18-sunrad) list.push({'title':'Astronomical dusk','values':ob,'colour':objects[o].colour});
 					}
 				}
+				prevel = el;
 			}
 			this.paper.path(objects[o].path).attr({'stroke':objects[o].colour,'stroke-width':2,'stroke-dasharray':'10 2','fill':'none'});
 		}
+
 		for(var i = 0; i < list.length; i++){
 			if(list[i].values){
-				list[i].value = list[i].values.local.substr(11,5);
+				list[i].value = list[i].values.time.toISO().substr(11,5);
 				// Get the hour in the user's timezone
-				list[i].user = list[i].values.user.toLocaleString().replace(/.*?([0-9]{2}:[0-9]{2}).*/,function(m,p1){ return p1; });
+				list[i].user = list[i].values.time.setZone('local').toISO().substr(11,5);
 			}
 		}
 		
 		html = '';
+
 		list.sort(function(a, b) {
 			if(a.value < b.value) return -1;
 			else return 1;
 		});
-
 
 		for(var i = 0; i < list.length; i++){
 			a = list[i].value.match(/[0-9]{2}\:[0-9]{2}/);
