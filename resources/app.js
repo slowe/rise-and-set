@@ -258,7 +258,6 @@ function Application(){
 			e.preventDefault();
 			// Get the user location
 			navigator.geolocation.getCurrentPosition(function(position) {
-				S('#btn-location').addClass('active');
 				_obj.setGeo(position.coords.latitude,position.coords.longitude);
 				S('#typeahead')[0].value = position.coords.latitude.toFixed(1)+', '+position.coords.longitude.toFixed(1);
 			},function(){
