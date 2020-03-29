@@ -256,25 +256,18 @@ function Application(){
 
 		S('#btn-location').on('click',{me:this},function(e){
 			e.preventDefault();
-			this.usinglocation = !this.usinglocation;
-			if(this.usinglocation){
-				// Get the user location
-				e.data.me.watchID = navigator.geolocation.getCurrentPosition(function(position) {
-					S('#btn-location').addClass('active');
-					_obj.setGeo(position.coords.latitude,position.coords.longitude);
-					_obj.usinglocation = true;
-					S('#typeahead')[0].value = position.coords.latitude.toFixed(1)+', '+position.coords.longitude.toFixed(1);
-				},function(){
-					console.error("Sorry, no position available.");
-				},{
-					enableHighAccuracy: true, 
-					maximumAge        : 60000,
-					timeout           : 27000
-				});
-			}else{
-				S('#btn-location').removeClass('active');
-				S('#typeahead')[0].value = '';
-			}
+			// Get the user location
+			navigator.geolocation.getCurrentPosition(function(position) {
+				S('#btn-location').addClass('active');
+				_obj.setGeo(position.coords.latitude,position.coords.longitude);
+				S('#typeahead')[0].value = position.coords.latitude.toFixed(1)+', '+position.coords.longitude.toFixed(1);
+			},function(){
+				console.error("Sorry, no position available.");
+			},{
+				enableHighAccuracy: true, 
+				maximumAge        : 0,
+				timeout           : 5000
+			});
 		});
 	}
 
