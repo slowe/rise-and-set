@@ -39,17 +39,29 @@ function Application(){
 	this.getPositions = function(objects){
 		var c,o;
 		var now = new Date();
+		var days = 1;
+		var radec,azel;
+
 		for(obj in objects){
 			if(obj=="sun"){
 				this.objects[obj] = sunPosition(this.times.JD);
+				c = this.ecliptic2azel(this.objects[obj].lon*d2r,this.objects[obj].lat*d2r,this.times.LST);
+				this.objects[obj].az = c.az;
+				this.objects[obj].el = c.el;
 			}else if(obj=="moon"){
 				this.objects[obj] = moonPosition(this.times.JD,this.objects.sun);
 				//this.objects[obj].phase = moonPhase(this.times.JD);
+				c = this.ecliptic2azel(this.objects[obj].lon*d2r,this.objects[obj].lat*d2r,this.times.LST);
+				this.objects[obj].az = c.az;
+				this.objects[obj].el = c.el;
+			}else{
+				// See if this is in the planets array
+				if(typeof objects[obj].id==="number"){
+					radec = this.planets.getEphem(objects[obj].id,this.times.JD);
+					azel = this.coord2horizon(radec[0]*d2r,radec[1]*d2r)
+					this.objects[obj] = {'az':azel[1]*r2d,'el':azel[0]*r2d};
+				}
 			}
-			
-			c = this.ecliptic2azel(this.objects[obj].lon*d2r,this.objects[obj].lat*d2r,this.times.LST);
-			this.objects[obj].az = c.az;
-			this.objects[obj].el = c.el;
 		}
 		return this.objects;
 	}
@@ -233,6 +245,23 @@ function Application(){
 			else return [(A[0][0]*B[0] + A[0][1]*B[1] + A[0][2]*B[2]),(A[1][0]*B[0] + A[1][1]*B[1] + A[1][2]*B[2]),(A[2][0]*B[0] + A[2][1]*B[1] + A[2][2]*B[2])];
 		}
 	};
+	
+	this.coord2horizon = function(ra, dec){
+		var ha, alt, az, sd, sl, cl;
+		// compute hour angle in degrees
+		ha = (Math.PI*this.times.LST/12) - ra;
+		sd = Math.sin(dec);
+		sl = Math.sin(this.latitude.rad);
+		cl = Math.cos(this.latitude.rad);
+		// compute altitude in radians
+		alt = Math.asin(sd*sl + Math.cos(dec)*cl*Math.cos(ha));
+		// compute azimuth in radians
+		// divide by zero error at poles or if alt = 90 deg (so we should've already limited to 89.9999)
+		az = Math.acos((sd - Math.sin(alt)*sl)/(Math.cos(alt)*cl));
+		// choose hemisphere
+		if (Math.sin(ha) > 0) az = 2*Math.PI - az;
+		return [alt,az];
+	};
 
 	var _obj = this;
 
@@ -324,8 +353,7 @@ function Application(){
 		if(this.tz) dt = dt.setZone(this.tz);
 		// Set clock to start of the day in the appropriate timezone
 		clock = dt.startOf('day');
-		
-//console.log(dt,clock,this.tz)
+
 		var tall = 240;
 		var wide = 0;
 
@@ -337,9 +365,17 @@ function Application(){
 		this.paper.paper.attr('width',wide).attr('viewBox','0 0 '+wide+' '+tall);
 
 		var objects = {
-			'sun':{'path':[],'colour':'#eebd14','elevation':[]},
-			'moon':{'path':[],'colour':'#999','elevation':[]}
-		};
+			'sun':{'path':[],'colour':'#eebd14','elevation':[],'rise':'Sunrise','set':'Sunset','icon':'sun.svg'},
+			'moon':{'path':[],'colour':'#999','elevation':[],'rise':'Moonrise','set':'Moonset','icon':'moon.svg'}
+		}
+/*
+		this.planets = new Planets();
+		for(i = 0; i < this.planets.planets.length; i++){
+			if(this.planets.planets[i].colour){
+				objects[this.planets.planets[i].name] = {'path':[],'colour':this.planets.planets[i].colour,'elevation':[],'id':i,'rise':this.planets.planets[i].name+' rise','set':this.planets.planets[i].name+' set'};
+			}
+		}
+*/
 		var list = [];
 
 		function getCoords(m,el){ return [m*wide/1440,tall/2 - el*tall/180]; }
@@ -354,39 +390,72 @@ function Application(){
 			app.setClock(clock);
 			pos = app.getPositions(objects);
 			for(var o in objects){
-				objects[o].elevation.push({'time':clock,'el':pos[o].el});
-				objects[o].path.push([(i==0 ? 'M':'L'),getCoords(i,pos[o].el)]);
+				if(pos[o]){
+					objects[o].elevation.push({'time':clock,'el':pos[o].el});
+					objects[o].path.push([(i==0 ? 'M':'L'),getCoords(i,pos[o].el)]);
+				}
 			}
 			oldpos = pos;
 		}
 
 		sunsize = 0.5;
 		sunrad = sunsize/2;
+		
+		stop1 = 0;
+		stop2 = 0;
+		stop3 = 0;
+		stop4 = 100;
+		stop5 = 100;
+		stop6 = 100;
 
 		for(var o in objects){
-			prevel = objects[o].elevation[0].el;
-			objects[o].list = [];
-			for(var i = 1; i < objects[o].elevation.length; i++){
-				ob = objects[o].elevation[i];
-				el = ob.el;
-				if(el >= 0-sunrad && prevel < 0-sunrad) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'rise','values':ob,'colour':objects[o].colour,'type':o});
-				if(el <= 0-sunrad && prevel > 0-sunrad) list.push({'title':o.substr(0,1).toUpperCase()+o.substr(1,)+'set','values':ob,'colour':objects[o].colour,'type':o});
-				if(o == "sun"){
-					if(el >= -6-sunrad && prevel < -6-sunrad) list.push({'title':'First light','values':ob,'colour':objects[o].colour,'type':o});
-					if(el <= -6-sunrad && prevel > -6-sunrad) list.push({'title':'Last light','values':ob,'colour':objects[o].colour,'type':o});
-					if(this.settings.nautical){
-						if(el >= -12-sunrad && prevel < -12-sunrad) list.push({'title':'Nautical dawn','values':ob,'colour':objects[o].colour,'type':o});
-						if(el <= -12-sunrad && prevel > -12-sunrad) list.push({'title':'Nautical dusk','values':ob,'colour':objects[o].colour,'type':o});
+			if(objects[o].elevation.length > 0){
+				prevel = objects[o].elevation[0].el;
+				objects[o].list = [];
+				for(var i = 1; i < objects[o].elevation.length; i++){
+					ob = objects[o].elevation[i];
+					el = ob.el;
+					if(el >= 0-sunrad && prevel < 0-sunrad) list.push({'title':objects[o].rise,'values':ob,'colour':objects[o].colour,'type':o,'icon':objects[o].icon});
+					if(el <= 0-sunrad && prevel > 0-sunrad) list.push({'title':objects[o].set,'values':ob,'colour':objects[o].colour,'type':o,'icon':objects[o].icon});
+					if(o == "sun"){
+						if(el >= 0-sunrad && prevel < 0-sunrad){
+							// Sunrise
+							stop3 = (ob.time.ts-objects['sun'].elevation[0].time.ts)/864000;
+						}
+						if(el <= 0-sunrad && prevel > 0-sunrad){
+							// Sunset
+							stop4 = (ob.time.ts-objects['sun'].elevation[0].time.ts)/864000;
+						}
+						if(el >= -6-sunrad && prevel < -6-sunrad){
+							list.push({'title':'First light','values':ob,'colour':objects[o].colour,'type':o,'icon':objects[o].icon});
+							stop2 = (ob.time.ts-objects['sun'].elevation[0].time.ts)/864000;
+						}
+						if(el <= -6-sunrad && prevel > -6-sunrad){
+							list.push({'title':'Last light','values':ob,'colour':objects[o].colour,'type':o,'icon':objects[o].icon});
+							stop5 = (ob.time.ts-objects['sun'].elevation[0].time.ts)/864000;
+						}
+						if(el >= -12-sunrad && prevel < -12-sunrad){
+							if(this.settings.nautical) list.push({'title':'Nautical dawn','values':ob,'colour':objects[o].colour,'type':o,'icon':objects[o].icon});
+						}
+						if(el <= -12-sunrad && prevel > -12-sunrad){
+							if(this.settings.nautical) list.push({'title':'Nautical dusk','values':ob,'colour':objects[o].colour,'type':o,'icon':objects[o].icon});
+						}
+						if(el >= -18-sunrad && prevel < -18-sunrad){
+							if(this.settings.astronomical) list.push({'title':'Astronomical dawn','values':ob,'colour':objects[o].colour,'icon':objects[o].icon});
+							stop1 = (ob.time.ts-objects['sun'].elevation[0].time.ts)/864000;
+						}
+						if(el <= -18-sunrad && prevel > -18-sunrad){
+							if(this.settings.astronomical) list.push({'title':'Astronomical dusk','values':ob,'colour':objects[o].colour,'icon':objects[o].icon});
+							stop6 = (ob.time.ts-objects['sun'].elevation[0].time.ts)/864000;
+						}
 					}
-					if(this.settings.astronomical){
-						if(el >= -18-sunrad && prevel < -18-sunrad) list.push({'title':'Astronomical dawn','values':ob,'colour':objects[o].colour});
-						if(el <= -18-sunrad && prevel > -18-sunrad) list.push({'title':'Astronomical dusk','values':ob,'colour':objects[o].colour});
-					}
+					prevel = el;
 				}
-				prevel = el;
+				this.paper.path(objects[o].path).attr({'stroke':objects[o].colour,'stroke-width':2,'stroke-dasharray':'10 2','fill':'none'});
 			}
-			this.paper.path(objects[o].path).attr({'stroke':objects[o].colour,'stroke-width':2,'stroke-dasharray':'10 2','fill':'none'});
 		}
+		if(stop5 < 50) stop5 += 100;
+		if(stop6 < 50) stop6 += 100;
 
 		for(var i = 0; i < list.length; i++){
 			if(list[i].values){
@@ -395,6 +464,9 @@ function Application(){
 				list[i].user = list[i].values.time.setZone('local').toISO().substr(11,5);
 			}
 		}
+
+		// Update day-night gradient
+		S('#sky svg').css({'background-image':'linear-gradient(to right, rgba(0,0,0,0.8) '+stop1.toFixed(1)+'%, rgba(0,0,0,0.3) '+stop2.toFixed(1)+'%, rgba(0,0,0,0) '+stop3.toFixed(1)+'%, rgba(0,0,0,0) '+stop4.toFixed(1)+'%, rgba(0,0,0,0.3) '+stop5.toFixed(1)+'%, rgba(0,0,0,0.8) '+stop6.toFixed(1)+'%)'});
 		
 		html = '';
 
@@ -406,7 +478,7 @@ function Application(){
 		for(var i = 0; i < list.length; i++){
 			a = list[i].value.match(/[0-9]{2}\:[0-9]{2}/);
 			if(a){
-				ico = '<img src="resources/'+list[i].type+'.svg" />';
+				ico = (list[i].icon ? '<img src="resources/'+list[i].icon+'" />' : '<svg width="1em" height="1em" viewBox="-16 -16 32 32"><circle cx="0" cy="0" r="2" fill="'+list[i].colour+'"></circle></svg>');
 				html += '<li style="color:'+list[i].colour+'">'+list[i].value+(list[i].user!=list[i].value ? ' ('+list[i].user+')':'')+' '+ico+''+list[i].title+'</li>';
 			}
 		}
@@ -631,6 +703,7 @@ function Application(){
 			{'b':'z','l':/[\u007A\u24E9\uFF5A\u017A\u1E91\u017C\u017E\u1E93\u1E95\u01B6\u0225\u0240\u2C6C\uA763]/g}
 		];
 
+
 		for(var i = 0; i < map.length; i++) str = str.replace(map[i].l, map[i].b);
 
 		return str;
@@ -639,9 +712,281 @@ function Application(){
 }
 
 
+function log10(x) {
+	return Math.LOG10E * Math.log(x);
+}
+
+// Create an object to deal with planet ephemerides
+function Planets(){
+	// Heliocentric Osculating Orbital Elements Referred to the Mean Equinox and Ecliptic of Date for 2013: http://asa.usno.navy.mil/static/files/2013/Osculating_Elements_2013.txt
+	// Values of the Osculating Orbital Elements for 8th August 1997: http://www.stargazing.net/kepler/ellipse.html
+	// Uncertainties in RA (pre 2050) should be: <400" (Jupiter); <600" (Saturn); <50" everything else
+	// See also: https://ssd.jpl.nasa.gov/txt/p_elem_t1.txt
+	//           https://ssd.jpl.nasa.gov/?planet_pos
+	this.planets = [{
+		"name": "Mercury",
+		"radius":2439.7,	// km
+		"interval": 0.5,
+		"colour": "rgb(170,150,170)",
+		"magnitude": function(d){ return -0.36 + 5*log10(d.r*d.R) + 0.027 * d.FV + 2.2E-13 * Math.pow(d.FV,6); },
+		"elements": [
+			{"jd":2456280.5,"i":7.0053,"o":48.485,"p":77.658,"a":0.387100,"n":4.09232,"e":0.205636,"L":191.7001},
+			{"jd":2456360.5,"i":7.0052,"o":48.487,"p":77.663,"a":0.387098,"n":4.09235,"e":0.205646,"L":159.0899},
+			{"jd":2456440.5,"i":7.0052,"o":48.490,"p":77.665,"a":0.387097,"n":4.09236,"e":0.205650,"L":126.4812},
+			{"jd":2456520.5,"i":7.0052,"o":48.493,"p":77.669,"a":0.387098,"n":4.09235,"e":0.205645,"L":93.8725},
+			{"jd":2456600.5,"i":7.0052,"o":48.495,"p":77.672,"a":0.387099,"n":4.09234,"e":0.205635,"L":61.2628},
+			{"jd":2456680.5,"i":7.0052,"o":48.498,"p":77.677,"a":0.387098,"n":4.09234,"e":0.205633,"L":28.6524}
+		]
+	},{
+		"name": "Venus",
+		"radius": 6051.9,	// km
+		"interval": 1,
+		"colour": "rgb(245,222,179)",
+		"magnitude": function(d){ return -4.34 + 5*log10(d.a*d.R) + 0.013 * d.FV + 4.2E-7*Math.pow(d.FV,3); },
+		"elements": [
+			{"jd":2456280.5,"i":3.3949,"o":76.797,"p":132.00,"a":0.723328,"n":1.60214,"e":0.006777,"L":209.0515},
+			{"jd":2456360.5,"i":3.3949,"o":76.799,"p":132.07,"a":0.723327,"n":1.60215,"e":0.006787,"L":337.2248},
+			{"jd":2456440.5,"i":3.3949,"o":76.802,"p":131.97,"a":0.723333,"n":1.60213,"e":0.006780,"L":105.3980},
+			{"jd":2456520.5,"i":3.3949,"o":76.804,"p":131.99,"a":0.723327,"n":1.60215,"e":0.006769,"L":233.5729},
+			{"jd":2456600.5,"i":3.3949,"o":76.807,"p":132.03,"a":0.723326,"n":1.60215,"e":0.006775,"L":1.7475},
+			{"jd":2456680.5,"i":3.3948,"o":76.808,"p":131.63,"a":0.723345,"n":1.60209,"e":0.006770,"L":129.9169}
+		]
+	},{
+		"name":"Earth",
+		"elements" : [
+			{"jd":2450680.5,"i":0.00041,"o":349.2,"p":102.8517,"a":1.0000200,"n":0.9855796,"e":0.0166967,"L":328.40353},
+			{"jd":2456320.5,"i":0.0,"o":349.2,"p":103.005,"a":0.999986,"n":0.985631,"e":0.016682,"L":127.4201},
+			{"jd":2456400.5,"i":0.0,"o":349.2,"p":103.022,"a":0.999987,"n":0.985630,"e":0.016677,"L":206.2740},
+			{"jd":2456480.5,"i":0.0,"o":349.2,"p":103.119,"a":1.000005,"n":0.985603,"e":0.016675,"L":285.1238},
+			{"jd":2456560.5,"i":0.0,"o":349.2,"p":103.161,"a":0.999995,"n":0.985618,"e":0.016682,"L":3.9752},
+			{"jd":2456680.5,"i":0.0,"o":349.2,"p":103.166,"a":1.000005,"n":0.985603,"e":0.016693,"L":122.2544}
+		]
+	},{
+		"name":"Mars",
+		"radius": 3386,	// km
+		"interval": 1,
+		"colour": "rgb(255,50,50)",
+		"magnitude": function(d){ return -1.51 + 5*log10(d.r*d.R) + 0.016 * d.FV; },
+		"elements":[
+			{"jd":2450680.5,"i":1.84992,"o":49.5664,"p":336.0882,"a":1.5236365,"n":0.5240613,"e":0.0934231,"L":262.42784},
+			{"jd":2456320.5,"i":1.8497,"o":49.664,"p":336.249,"a":1.523605,"n":0.524079,"e":0.093274,"L":338.1493},
+			{"jd":2456400.5,"i":1.8497,"o":49.666,"p":336.268,"a":1.523627,"n":0.524068,"e":0.093276,"L":20.0806},
+			{"jd":2456480.5,"i":1.8496,"o":49.668,"p":336.306,"a":1.523731,"n":0.524014,"e":0.093316,"L":62.0048},
+			{"jd":2456560.5,"i":1.8495,"o":49.666,"p":336.329,"a":1.523748,"n":0.524005,"e":0.093385,"L":103.9196},
+			{"jd":2456680.5,"i":1.8495,"o":49.665,"p":336.330,"a":1.523631,"n":0.524066,"e":0.093482,"L":166.8051}
+		]
+	},{
+		"name":"Jupiter",
+		"radius": 69173,	// km
+		"interval": 10,
+		"colour": "rgb(255,150,150)",
+		"magnitude": function(d){ return -9.25 + 5*log10(d.r*d.R) + 0.014 * d.FV; },
+		"elements":[
+			{"jd":2456280.5,"i":1.3033,"o":100.624,"p":14.604,"a":5.20269,"n":0.083094,"e":0.048895,"L":68.0222},
+			{"jd":2456360.5,"i":1.3033,"o":100.625,"p":14.588,"a":5.20262,"n":0.083095,"e":0.048895,"L":74.6719},
+			{"jd":2456440.5,"i":1.3033,"o":100.627,"p":14.586,"a":5.20259,"n":0.083096,"e":0.048892,"L":81.3228},
+			{"jd":2456520.5,"i":1.3033,"o":100.629,"p":14.556,"a":5.20245,"n":0.083099,"e":0.048892,"L":87.9728},
+			{"jd":2456600.5,"i":1.3033,"o":100.631,"p":14.576,"a":5.20254,"n":0.083097,"e":0.048907,"L":94.6223},
+			{"jd":2456680.5,"i":1.3033,"o":100.633,"p":14.592,"a":5.20259,"n":0.083096,"e":0.048891,"L":101.2751}
+		]
+	},{
+		"name":"Saturn",
+		"radius": 57316,	// km
+		"interval": 10,
+		"colour": "rgb(200,150,150)",
+		"magnitude": function(d){
+			var slon = Math.atan2(d.y,d.x);
+			var slat = Math.atan2(d.z, Math.sqrt(d.x*d.x + d.y*d.y));
+			while(slon < 0){ slon += 2*Math.PI; }
+			while(slon >= 360){ slon -= 2*Math.PI; }
+			var ir = d.d2r*28.06;
+			var Nr = d.d2r*(169.51 + 3.82E-5 * (d.jd-2451543.5));	// Compared to J2000 epoch
+			var B = Math.asin(Math.sin(slat) * Math.cos(ir) - Math.cos(slat) * Math.sin(ir) * Math.sin(slon-Nr));
+			return -9.0  + 5*log10(d.r*d.R) + 0.044 * d.FV + (-2.6 * Math.sin(Math.abs(B)) + 1.2 * Math.pow(Math.sin(B),2));
+		},
+		"elements":[
+			{"jd":2456280.5,"i":2.4869,"o":113.732,"p":90.734,"a":9.51836,"n":0.033583,"e":0.055789,"L":208.6057},
+			{"jd":2456360.5,"i":2.4869,"o":113.732,"p":90.979,"a":9.52024,"n":0.033574,"e":0.055794,"L":211.2797},
+			{"jd":2456440.5,"i":2.4869,"o":113.732,"p":91.245,"a":9.52234,"n":0.033562,"e":0.055779,"L":213.9525},
+			{"jd":2456520.5,"i":2.4869,"o":113.732,"p":91.500,"a":9.52450,"n":0.033551,"e":0.055724,"L":216.6279},
+			{"jd":2456600.5,"i":2.4870,"o":113.732,"p":91.727,"a":9.52630,"n":0.033541,"e":0.055691,"L":219.3014},
+			{"jd":2456680.5,"i":2.4870,"o":113.733,"p":92.021,"a":9.52885,"n":0.033528,"e":0.055600,"L":221.9730}
+		]
+	},{
+		"name":"Uranus",
+		"radius": 25266,	// km
+		"interval": 20,
+		"colour": "rgb(130,150,255)",
+		"magnitude": function(d){ return -7.15 + 5*log10(d.r*d.R) + 0.001 * d.FV; },
+		"elements":[
+			{"jd":2456280.5,"i":0.7726,"o":74.004,"p":169.227,"a":19.2099,"n":0.011713,"e":0.046728,"L":9.1400},
+			{"jd":2456360.5,"i":0.7727,"o":73.997,"p":169.314,"a":19.2030,"n":0.011720,"e":0.047102,"L":10.0873},
+			{"jd":2456440.5,"i":0.7728,"o":73.989,"p":169.434,"a":19.1953,"n":0.011727,"e":0.047509,"L":11.0340},
+			{"jd":2456520.5,"i":0.7728,"o":73.989,"p":169.602,"a":19.1882,"n":0.011733,"e":0.047874,"L":11.9756},
+			{"jd":2456600.5,"i":0.7728,"o":73.985,"p":169.740,"a":19.1816,"n":0.011739,"e":0.048215,"L":12.9200},
+			{"jd":2456680.5,"i":0.7728,"o":73.983,"p":169.962,"a":19.1729,"n":0.011747,"e":0.048650,"L":13.8617}
+		]
+	},{
+		"name":"Neptune",
+		"radius": 24553,	// km
+		"interval": 20,
+		"colour": "rgb(100,100,255)",
+		"magnitude": function(d){ return -6.90 + 5*log10(d.r*d.R) + 0.001 * d.FV; },
+		"elements":[
+			{"jd":2456280.5,"i":1.7686,"o":131.930,"p":53.89,"a":30.0401,"n":0.005990,"e":0.010281,"L":333.6121},
+			{"jd":2456360.5,"i":1.7688,"o":131.935,"p":56.47,"a":30.0259,"n":0.005994,"e":0.010138,"L":334.0856},
+			{"jd":2456440.5,"i":1.7690,"o":131.940,"p":59.24,"a":30.0108,"n":0.005999,"e":0.009985,"L":334.5566},
+			{"jd":2456520.5,"i":1.7692,"o":131.946,"p":61.52,"a":29.9987,"n":0.006002,"e":0.009816,"L":335.0233},
+			{"jd":2456600.5,"i":1.7694,"o":131.951,"p":63.84,"a":29.9867,"n":0.006006,"e":0.009690,"L":335.4937},
+			{"jd":2456680.5,"i":1.7697,"o":131.957,"p":66.66,"a":29.9725,"n":0.006010,"e":0.009508,"L":335.9564}
+		]
+	}];
+
+	this.d2r = Math.PI/180;
+	this.r2d = 180/Math.PI;
+	this.AUinkm = 149597870.700;
+	return this;
+}
+
+// Get the ephemeris for the specified planet number
+// Input:
+//   planet = ID
+//   day = Julian Date to calculate the ephemeris for
+// Method from http://www.stargazing.net/kepler/ellipse.html#twig06
+Planets.prototype.getEphem = function(planet,day){
+
+	var i,v,e,x,y,z,ec,q,ra,dc,R,mag,FV,phase;
+
+	if(typeof planet==="number"){
+		i = planet;
+	}else{
+		var match = -1;
+		for(var a = 0 ; a < this.planets.length ; a++){
+			if(this.planets[a].name==planet) match = a;
+		}
+		if(match < 0) return this;
+		if(match == 2) return this;	// Can't calculate Earth
+		i = match;
+	}
+
+	// Heliocentric coordinates of planet
+	v = this.getHeliocentric(this.planets[i],day);
+
+	// Heliocentric coordinates of Earth
+	e = this.getHeliocentric(this.planets[2],day);
+
+	// Geocentric ecliptic coordinates of the planet
+	x = v.xyz[0] - e.xyz[0];
+	y = v.xyz[1] - e.xyz[1];
+	z = v.xyz[2] - e.xyz[2];
+
+	// Geocentric equatorial coordinates of the planet
+	ec = 23.439292*this.d2r; // obliquity of the ecliptic for the epoch the elements are referred to
+	q = [x,y * Math.cos(ec) - z * Math.sin(ec),y * Math.sin(ec) + z * Math.cos(ec)];
+
+	ra = Math.atan(q[1]/q[0])*this.r2d;
+	if(q[0] < 0) ra += 180;
+	if(q[0] >= 0 && q[1] < 0) ra += 360;
+
+	dc = Math.atan(q[2] / Math.sqrt(q[0]*q[0] + q[1]*q[1]))*this.r2d;
+
+	R = Math.sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]);
+
+	// Calculate the magnitude (http://stjarnhimlen.se/comp/tutorial.html)
+	var angdiam = (this.planets[i].radius*2/(R*this.AUinkm));
+	mag = 1;
+
+	// planet's heliocentric distance, v.r, its geocentric distance, R, and the distance to the Sun, e.r.
+	FV = Math.acos( ( v.r*v.r + R*R - e.r*e.r ) / (2*v.r*R) );
+	phase = (1 + Math.cos(FV))/2;
+	mag = this.planets[i].magnitude({a:v.r,r:v.r,R:R,FV:FV*this.r2d,x:x,y:y,z:z,jd:day,d2r:this.d2r});
+
+	return [ra,dc,mag];
+}
+
+Planets.prototype.getHeliocentric = function(planet,jd,i){
+	var min = 1e10;
+	var mn,p,d,M,v,r;
+
+	// Choose a set of orbital elements
+	if(!i){
+		// Loop over elements and pick the one closest in time
+		for(var j = 0; j < planet.elements.length ;j++){
+			mn = Math.abs(planet.elements[j].jd-jd);
+			if(mn < min){
+				i = j;
+				min = mn;
+			}
+		}
+	}
+	p = planet.elements[i];
+
+	// The day number is the number of days (decimal) since epoch of elements.
+	d = (jd - p.jd);
+
+	// Heliocentric coordinates of planet
+	M = this.meanAnomaly(p.n,d,p.L,p.p)
+	v = this.trueAnomaly(M*this.d2r,p.e,10);
+	r = p.a * (1 - Math.pow(p.e,2)) / (1 + p.e * Math.cos(v*this.d2r));
+	return {xyz: this.heliocentric(v*this.d2r,r,p.p*this.d2r,p.o*this.d2r,p.i*this.d2r), M:M, v:v, r:r, i:i, d:d, elements:p};
+}
+
+// Find the Mean Anomaly (M, degrees) of the planet where
+//  n is daily motion
+//  d is the number of days since the date of the elements
+//  L is the mean longitude (deg)
+//  p is the longitude of perihelion (deg) 
+//  M should be in range 0 to 360 degrees
+Planets.prototype.meanAnomaly = function(d,n,L,p){
+	var M = n * d + L - p;
+	while(M < 0){ M += 360; }
+	while(M >= 360){ M -= 360; }
+	return M;
+}
+
+// Heliocentric coordinates of the planet where:	
+//  o is longitude of ascending node (radians)
+//  p is longitude of perihelion (radians)
+//  i is inclination of plane of orbit (radians)
+// the quantity v + o - p is the angle of the planet measured in the plane of the orbit from the ascending node
+Planets.prototype.heliocentric = function(v,r,p,o,i){
+	var vpo = v + p - o;
+	var svpo = Math.sin(vpo);
+	var cvpo = Math.cos(vpo);
+	var co = Math.cos(o);
+	var so = Math.sin(o);
+	var ci = Math.cos(i);
+	var si = Math.sin(i);
+	return [r * (co * cvpo - so * svpo * ci),r * (so * cvpo + co * svpo * ci),r * (svpo * si)]
+}
+
+/*
+	Find the True Anomaly given
+	m  -  the 'mean anomaly' in orbit theory (in radians)
+	ecc - the eccentricity of the orbit
+*/
+Planets.prototype.trueAnomaly = function(m,ecc,eps){
+	var e = m;        // first guess
+
+	if(typeof eps==="number"){
+		var delta = 0.05; // set delta equal to a dummy value
+		var eps = 10;     // eps - the precision parameter - solution will be within 10^-eps of the true value. Don't set eps above 14, as convergence can't be guaranteed
+	
+		while(Math.abs(delta) >= Math.pow(10,-eps)){    // converged?
+			delta = e - ecc * Math.sin(e) - m;          // new error
+			e -= delta / (1 - ecc * Math.cos(e));    // corrected guess
+		}
+		var v = 2 * Math.atan(Math.pow(((1 + ecc) / (1 - ecc)),0.5) * Math.tan(0.5 * e));
+		if(v < 0) v+= Math.PI*2;
+	}else{
+		v = m + ( (2 * ecc - Math.pow(ecc,3)/4)*Math.sin(m) + 1.25*Math.pow(ecc,2)*Math.sin(2*m) + (13/12)*Math.pow(ecc,3)*Math.sin(3*m) );
+	}
+	return v*this.r2d; // return estimate
+}
+
+
 S(document).ready(function(){
 	
-
 	app = new Application({});
 	app.setGeo(53.9929,-1.5457,"Europe/London","Harrogate, UK");
 	//app.setGeo(-33.85702,151.21462,"Australia/Sydney","Sydney, Australia");

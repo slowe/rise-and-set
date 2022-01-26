@@ -118,12 +118,13 @@ body {
 	background: transparent; 
 	border: 0px;
 	font-family: inherit;
+	color: white;
 }
 #sky {
 	line-height: 0;
+	background: linear-gradient(to bottom, #00BFFF 0, #E0FFFF 50%, #666 50%, #000 80%);
 }
 #sky svg {
-	background: linear-gradient(to bottom, #00BFFF 0, #E0FFFF 50%, #666 50%, #000 80%);
 }
 #times ul {
 	list-style: none;
@@ -139,7 +140,7 @@ body {
 #times ul > li {
 	line-height: 1.5em;
 }
-#times ul > li img {
+#times ul > li img, #times ul > li svg {
 	height: 1em;
 	position: relative;
 	top: 0.125em;
