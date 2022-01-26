@@ -368,14 +368,13 @@ function Application(){
 			'sun':{'path':[],'colour':'#eebd14','elevation':[],'rise':'Sunrise','set':'Sunset','icon':'sun.svg'},
 			'moon':{'path':[],'colour':'#999','elevation':[],'rise':'Moonrise','set':'Moonset','icon':'moon.svg'}
 		}
-/*
 		this.planets = new Planets();
 		for(i = 0; i < this.planets.planets.length; i++){
-			if(this.planets.planets[i].colour){
+			if(this.planets.planets[i].colour && this.planets.planets[i].include){
 				objects[this.planets.planets[i].name] = {'path':[],'colour':this.planets.planets[i].colour,'elevation':[],'id':i,'rise':this.planets.planets[i].name+' rise','set':this.planets.planets[i].name+' set'};
 			}
 		}
-*/
+
 		var list = [];
 
 		function getCoords(m,el){ return [m*wide/1440,tall/2 - el*tall/180]; }
@@ -766,6 +765,7 @@ function Planets(){
 		"radius": 3386,	// km
 		"interval": 1,
 		"colour": "rgb(255,50,50)",
+		"include": true,
 		"magnitude": function(d){ return -1.51 + 5*log10(d.r*d.R) + 0.016 * d.FV; },
 		"elements":[
 			{"jd":2450680.5,"i":1.84992,"o":49.5664,"p":336.0882,"a":1.5236365,"n":0.5240613,"e":0.0934231,"L":262.42784},
@@ -780,6 +780,7 @@ function Planets(){
 		"radius": 69173,	// km
 		"interval": 10,
 		"colour": "rgb(255,150,150)",
+		"include": true,
 		"magnitude": function(d){ return -9.25 + 5*log10(d.r*d.R) + 0.014 * d.FV; },
 		"elements":[
 			{"jd":2456280.5,"i":1.3033,"o":100.624,"p":14.604,"a":5.20269,"n":0.083094,"e":0.048895,"L":68.0222},
