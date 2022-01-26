@@ -249,10 +249,10 @@ function Application(){
 	});
 	// Add swipe controls
 	document.addEventListener('swiped-left', function(e){
-		_obj.nextDay(-1)
+		_obj.nextDay(1)
 	});
 	document.addEventListener('swiped-right', function(e){
-		_obj.nextDay(1)
+		_obj.nextDay(-1)
 	});
 	this.nextDay = function(dir){
 		var d;
